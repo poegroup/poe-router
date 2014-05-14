@@ -18,8 +18,8 @@ backend(Req, State) ->
   {Branch, Req3} = branch(Name, Req2, State),
   {User, Req4} = user(Req3, State),
   case poe_router_manager:get(Name, Branch, User) of
-    {ok, Pid, _Conf} ->
-      {Pid, Req4, State};
+    {ok, Pid, Path, _Conf} ->
+      {{Pid, Path}, Req4, State};
     Error ->
       %% TODO what should we do here so it fails with a decent message?
       Error
@@ -52,7 +52,7 @@ app_name(Req, _State) ->
   end.
 
 branch(Name, Req, _State) ->
-  cowboy_req:cookie(<<"poe-", Name/binary>>, Req, <<"prod">>).
+  cowboy_req:cookie(<<"poe-", Name/binary>>, Req, <<"master">>).
 
 user(Req, _State) ->
   {<<"id">>, Req}.

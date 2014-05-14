@@ -29,18 +29,20 @@ get(Name, Branch, User) ->
       Error
   end.
 
-connect({Proto, Host, Port} = Conf) ->
+connect({Proto, Host, Port, Path} = Conf) ->
   case ets:lookup(?CONN_TAB, Conf) of
     [] ->
+      %% TODO do we need to pool or does gun automatically do that?
       case gun:open(Host, Port, [{type, Proto}]) of
         {ok, Pid} ->
+          %% TODO monitor the connection in a supervisor
           true = ets:insert(?CONN_TAB, {Conf, Pid}),
-          {ok, Pid, Conf};
+          {ok, Pid, Path, Conf};
         Error ->
           Error
       end;
     [{Conf, Pid}] ->
-      {ok, Pid, Conf}
+      {ok, Pid, Path, Conf}
   end.
 
 %% return a list of hosts for a given branch
