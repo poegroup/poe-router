@@ -1,0 +1,15 @@
+{application, poe_router, [
+  {id, "poe_router"},
+  {description, "continuous delivery enabled router"},
+  {vsn, "0.1.0"},
+  {modules, []},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    cowboy,
+    gun
+  ]},
+  {mod, {poe_router_app, []}},
+  {env, []}
+]}.
