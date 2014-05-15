@@ -1,0 +1,14 @@
+{application, router, [
+  {id, "router"},
+  {description, ""},
+  {vsn, "0.1.0"},
+  {modules, []},
+  {registered, []},
+  {applications, [
+    kernel,
+    stdlib,
+    poe_router
+  ]},
+  {mod, {router_app, []}},
+  {env, []}
+]}.

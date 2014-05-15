@@ -14,6 +14,14 @@ start() ->
   ok = application:start(gun),
   ok = application:start(poe_router).
 
-start(_Ref, _Config) ->
-  %% cowboy:start_http(Ref, NbAcceptors, TransOpts, ProtoOpts).
-  ok.
+start(Ref, _Config) ->
+  Dispatch = cowboy_router:compile([
+    {'_', [
+      {"/:app/[...]", poe_router_handler, []},
+      {"/", poe_router_handler, []}
+    ]}
+  ]),
+  {ok, _} = cowboy:start_http(http, 100, [{port, 8080}], [
+    {env, [{dispatch, Dispatch}]}
+  ]),
+  {ok, Ref}.

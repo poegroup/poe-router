@@ -18,8 +18,10 @@ backend(Req, State) ->
   {Branch, Req3} = branch(Name, Req2, State),
   {User, Req4} = user(Req3, State),
   case poe_router_manager:get(Name, Branch, User) of
-    {ok, Pid, Path, _Conf} ->
-      {{Pid, Path}, Req4, State};
+    {ok, Conf} ->
+      {Conf, Req4, State};
+    {error, {notfound, _}} ->
+      {error, 404, Req4};
     Error ->
       %% TODO what should we do here so it fails with a decent message?
       Error
@@ -46,7 +48,7 @@ app_name(Req, _State) ->
   case cowboy_req:binding(app, Req) of
     {undefined, Req2} ->
       %% TODO select from either the root or the api
-      {<<"api">>, Req2};
+      {<<"root">>, Req2};
     {App, Req2} ->
       {App, Req2}
   end.

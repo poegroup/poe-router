@@ -2,8 +2,6 @@
 
 -export([init/0]).
 -export([get/3]).
--export([resolve/3]).
--export([connect/1]).
 -export([add/5]).
 -export([update/4]).
 -export([remove/2]).
@@ -17,45 +15,20 @@
 -define(HASH_RANGE, 16777216).
 
 init() ->
-  ?CONN_TAB = ets:new(?CONN_TAB, [set, public, named_table, {read_concurrency, true}]),
   ?APP_TAB = ets:new(?APP_TAB, [bag, public, named_table, {read_concurrency, true}]),
   ok.
 
-get(Name, Branch, User) ->
-  case resolve(Name, Branch, User) of
-    {ok, Conf} ->
-      connect(Conf);
-    Error ->
-      Error
-  end.
-
-connect({Proto, Host, Port, Path} = Conf) ->
-  case ets:lookup(?CONN_TAB, Conf) of
-    [] ->
-      %% TODO do we need to pool or does gun automatically do that?
-      case gun:open(Host, Port, [{type, Proto}]) of
-        {ok, Pid} ->
-          %% TODO monitor the connection in a supervisor
-          true = ets:insert(?CONN_TAB, {Conf, Pid}),
-          {ok, Pid, Path, Conf};
-        Error ->
-          Error
-      end;
-    [{Conf, Pid}] ->
-      {ok, Pid, Path, Conf}
-  end.
-
 %% return a list of hosts for a given branch
-resolve(Name, Branch, User) ->
+get(Name, Branch, User) ->
   Key = {Name, Branch},
   case ets:lookup(?APP_TAB, Key) of
     [{_, _, Conf, _}] ->
       {ok, Conf};
-    [] when Branch =:= <<"prod">> ->
+    [] when Branch =:= <<"master">> ->
       {error, {notfound, Key}};
     [] ->
       %% try the prod branch - the other was most likely deleted
-      resolve(Name, <<"prod">>, User);
+      get(Name, <<"master">>, User);
     Confs ->
       hash({User, Name}, Confs)
   end.
@@ -71,16 +44,10 @@ update(_Name, _Branch, _Conf, _Weight) ->
 
 remove(Name, Branch) ->
   true = ets:delete(?APP_TAB, {Name, Branch}),
-  %% TODO remove all of the connections if no other apps are using them
-  %% it should probably be after ~30 seconds so the connections have time
-  %% to clean up
   ok.
 
 remove(Name, Branch, Conf) ->
   true = ets:match_delete(?APP_TAB, {{Name, Branch}, '_', Conf, '_'}),
-  %% TODO remove the connection if no other apps are using it
-  %% it should probably be after ~30 seconds so the connections have time
-  %% to clean up
   ok.
 
 %% private.

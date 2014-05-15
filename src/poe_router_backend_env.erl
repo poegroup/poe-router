@@ -4,7 +4,8 @@
 
 start() ->
   Apps = get_csl("APPS"),
-  [handle_app(App, format(App)) || App <- Apps].
+  [handle_app(App, format(App)) || App <- Apps],
+  ok.
 
 handle_app(App, APP) ->
   Branches = get_csl(APP ++ "_BRANCHES", ["master"]),
