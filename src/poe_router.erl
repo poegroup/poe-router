@@ -14,14 +14,46 @@ start() ->
   ok = application:start(gun),
   ok = application:start(poe_router).
 
-start(Ref, _Config) ->
+start(Ref, Config) ->
+  Routes = fast_key:get(routes, Config, []),
+
   Dispatch = cowboy_router:compile([
-    {'_', [
+    {'_', Routes ++ [
+      %% {"/favicon.ico", poe_router_favicon, [fast_key:get(favicon, Config)]},
       {"/:app/[...]", poe_router_handler, []},
-      {"/", poe_router_handler, []}
+      {"/", fast_key:get(root, Config, poe_router_handler), Config}
     ]}
   ]),
-  {ok, _} = cowboy:start_http(http, 100, [{port, 8080}], [
-    {env, [{dispatch, Dispatch}]}
-  ]),
-  {ok, Ref}.
+
+  ERL_ENV = simple_env:get("ERL_ENV", "production"),
+
+  Env = [
+    {dispatch, Dispatch},
+    {force_https, fast_key:get(force_https, Config, ERL_ENV =/= "development")},
+    {trust_proxy, fast_key:get(trust_proxy, Config, ERL_ENV =/= "development")}
+  ] ++ fast_key:get(env, Config, []),
+
+  Middlewares = [
+    poe_router_force_https
+  ] ++ fast_key:get(middlewares, Config, []) ++ [
+    cowboy_router,
+    cowboy_handler
+  ],
+
+  start(Ref, 100, [
+    {port, fast_key:get(port, Config, simple_env:get_integer("PORT", 8080))}
+  ], [
+    {env, Env},
+    {middlewares, Middlewares},
+    {compress, true},
+    {onrequest, fast_key:get(onrequest, Config)},
+    {onresponse, fast_key:get(onresponse, Config)}
+  ]).
+
+start(https, Listeners, Tcp, Proto) ->
+  cowboy:start_https(https, Listeners, Tcp, Proto);
+start(spdy, Listeners, Tcp, Proto) ->
+  cowboy:start_spdy(spdy, Listeners, Tcp, Proto);
+start(Ref, Listeners, Tcp, Proto) ->
+  cowboy:start_http(Ref, Listeners, Tcp, Proto).
+

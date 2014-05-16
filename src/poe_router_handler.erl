@@ -6,6 +6,15 @@
 -export([forwarded_header_prefix/2]).
 -export([request_id/2]).
 -export([req_headers/3]).
+-export([res_headers/3]).
+
+-define(HEADERS, [
+  {<<"x-ua-compatible">>, <<"IE=Edge,chrome=1">>},
+  {<<"x-frame-options">>, <<"SAMEORIGIN">>},
+  {<<"x-content-type-options">>, <<"nosniff">>},
+  {<<"x-xss-protection">>, <<"1; mode=block">>},
+  {<<"strict-transport-security">>, <<"max-age=31536000; includeSubDomains">>}
+]).
 
 init(_, _Req, _Opts) ->
   {upgrade, protocol, ranger}.
@@ -20,7 +29,7 @@ backend(Req, State) ->
   case poe_router_manager:get(Name, Branch, User) of
     {ok, Conf} ->
       {Conf, Req4, State};
-    {error, {notfound, _}} ->
+    {error, {notfound, _Conf}} ->
       {error, 404, Req4};
     Error ->
       %% TODO what should we do here so it fails with a decent message?
@@ -44,11 +53,13 @@ req_headers(Headers, Req, State) ->
   Headers2 = fast_key:set(<<"x-orig-proto">>, Proto, Headers),
   {Headers2, Req, State}.
 
-app_name(Req, _State) ->
+res_headers(Headers, Req, State) ->
+  {?HEADERS ++ Headers, Req, State}.
+
+app_name(Req, State) ->
   case cowboy_req:binding(app, Req) of
     {undefined, Req2} ->
-      %% TODO select from either the root or the api
-      {<<"root">>, Req2};
+      {fast_key:get(app, State, <<"root">>), Req2};
     {App, Req2} ->
       {App, Req2}
   end.
