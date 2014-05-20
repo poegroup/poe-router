@@ -1,6 +1,7 @@
 -module(poe_router_manager).
 
 -export([init/0]).
+-export([apps/0]).
 -export([get/3]).
 -export([add/5]).
 -export([update/4]).
@@ -10,13 +11,33 @@
 %% private.
 -export([hash/2]).
 
--define(CONN_TAB, poe_router_connections).
 -define(APP_TAB, poe_router_apps).
 -define(HASH_RANGE, 16777216).
 
 init() ->
   ?APP_TAB = ets:new(?APP_TAB, [bag, public, named_table, {read_concurrency, true}]),
   ok.
+
+apps() ->
+  Apps = ets:match(?APP_TAB, {{'$1', '$2'}, '_', '$3', '$4'}),
+  lists:foldl(fun ([App, Branch, Conf, Weight], Acc) ->
+    Branches = case maps:find(App, Acc) of
+      {ok, Bs} ->
+        Bs;
+      _ ->
+        #{}
+    end,
+    Hosts = case maps:find(Branch, Branches) of
+      {ok, Hs} ->
+        Hs;
+      _ ->
+        #{}
+    end,
+    Host = format(Conf),
+    Hosts2 = maps:put(Host, Weight, Hosts),
+    Branches2 = maps:put(Branch, Hosts2, Branches),
+    maps:put(App, Branches2, Acc)
+  end, #{}, Apps).
 
 %% return a list of hosts for a given branch
 get(Name, Branch, User) ->
@@ -76,3 +97,14 @@ select(Pos, [{Index, Conf}|_]) when Index =< Pos ->
   {ok, Conf};
 select(Pos, [_|Rest]) ->
   select(Pos, Rest).
+
+format({Proto, Host, Port, <<"/">>}) ->
+  format({Proto, Host, Port, <<>>});
+format({tcp, Host, 80, Path}) ->
+  iolist_to_binary([<<"http://">>, Host, Path]);
+format({tcp, Host, Port, Path}) ->
+  iolist_to_binary([<<"http://">>, Host, <<$:>>, integer_to_binary(Port), Path]);
+format({_, Host, 443, Path}) ->
+  iolist_to_binary([<<"https://">>, Host, Path]);
+format({_, Host, Port, Path}) ->
+  iolist_to_binary([<<"https://">>, Host, <<$:>>, integer_to_binary(Port), Path]).

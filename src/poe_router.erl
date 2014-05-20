@@ -17,9 +17,13 @@ start() ->
 start(Ref, Config) ->
   Routes = fast_key:get(routes, Config, []),
 
+  Internal = fast_key:get(internal_path, Config, "/_"),
+
   Dispatch = cowboy_router:compile([
     {'_', Routes ++ [
       %% {"/favicon.ico", poe_router_favicon, [fast_key:get(favicon, Config)]},
+      {Internal ++ "/api", poe_router_api_root, []},
+      {Internal ++ "/[...]", poe_router_handler, [{app, <<"routerui">>}]},
       {"/:app/[...]", poe_router_handler, []},
       {"/", fast_key:get(root, Config, poe_router_handler), Config}
     ]}
