@@ -49,9 +49,24 @@ request_id(Req, State) ->
   {{<<"x-upstream-request-id">>, <<"x-request-id">>, ID}, Req3, State}.
 
 req_headers(Headers, Req, State) ->
-  Proto = fast_key:get(<<"x-orig-proto">>, Headers, fast_key:get(<<"x-forwarded-proto">>, Headers)),
-  Headers2 = fast_key:set(<<"x-orig-proto">>, Proto, Headers),
-  {Headers2, Req, State}.
+  case fast_key:get(<<"x-orig-proto">>, Headers) of
+    undefined ->
+      Proto = fast_key:get(<<"x-forwarded-proto">>, Headers),
+      Headers2 = [{<<"x-orig-proto">>, Proto}|Headers],
+      case Proto of
+        <<"https">> ->
+          case fast_key:get(<<"x-orig-port">>, Headers2) of
+            <<"80">> ->
+              {fast_key:set(<<"x-orig-port">>, <<"443">>, Headers2), Req, State};
+            _ ->
+              {Headers2, Req, State}
+          end;
+        _ ->
+          {Headers2, Req, State}
+      end;
+    _ ->
+      {Headers, Req, State}
+  end.
 
 res_headers(Headers, Req, State) ->
   {?HEADERS ++ Headers, Req, State}.
