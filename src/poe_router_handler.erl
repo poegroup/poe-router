@@ -49,23 +49,25 @@ request_id(Req, State) ->
   {{<<"x-upstream-request-id">>, <<"x-request-id">>, ID}, Req3, State}.
 
 req_headers(Headers, Req, State) ->
-  case fast_key:get(<<"x-orig-proto">>, Headers) of
+  {Env, Req2} = cowboy_req:meta(x_env, Req, <<"production">>),
+  Headers2 = [{<<"x-env">>, Env}|Headers],
+  case fast_key:get(<<"x-orig-proto">>, Headers2) of
     undefined ->
-      Proto = fast_key:get(<<"x-forwarded-proto">>, Headers),
-      Headers2 = [{<<"x-orig-proto">>, Proto}|Headers],
+      Proto = fast_key:get(<<"x-forwarded-proto">>, Headers2),
+      Headers3 = [{<<"x-orig-proto">>, Proto}|Headers2],
       case Proto of
         <<"https">> ->
-          case fast_key:get(<<"x-orig-port">>, Headers2) of
+          case fast_key:get(<<"x-orig-port">>, Headers3) of
             <<"80">> ->
-              {fast_key:set(<<"x-orig-port">>, <<"443">>, Headers2), Req, State};
+              {fast_key:set(<<"x-orig-port">>, <<"443">>, Headers2), Req2, State};
             _ ->
-              {Headers2, Req, State}
+              {Headers3, Req2, State}
           end;
         _ ->
-          {Headers2, Req, State}
+          {Headers3, Req2, State}
       end;
     _ ->
-      {Headers, Req, State}
+      {Headers2, Req2, State}
   end.
 
 res_headers(Headers, Req, State) ->
