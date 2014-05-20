@@ -59,7 +59,7 @@ req_headers(Headers, Req, State) ->
         <<"https">> ->
           case fast_key:get(<<"x-orig-port">>, Headers3) of
             <<"80">> ->
-              {fast_key:set(<<"x-orig-port">>, <<"443">>, Headers2), Req2, State};
+              {fast_key:set(<<"x-orig-port">>, <<"443">>, Headers3), Req2, State};
             _ ->
               {Headers3, Req2, State}
           end;
