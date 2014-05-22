@@ -16,11 +16,18 @@ start() ->
 
 start(Ref, Config) ->
   Routes = fast_key:get(routes, Config, []),
-
   Internal = fast_key:get(internal_path, Config, "/_"),
 
+  Routes2 = case simple_env:get("VALIDATION_PATH") of
+    undefined ->
+      Routes;
+    Path ->
+      Val = simple_env:get_binary("VALIDATION_VALUE"),
+      [{Path, poe_router_validation_handler, [{value, Val}]}] ++ Routes
+  end,
+
   Dispatch = cowboy_router:compile([
-    {'_', Routes ++ [
+    {'_', Routes2 ++ [
       %% {"/favicon.ico", poe_router_favicon, [fast_key:get(favicon, Config)]},
       {Internal ++ "/api", poe_router_api_root, []},
       {Internal ++ "/[...]", poe_router_handler, [{app, <<"routerui">>}]},
