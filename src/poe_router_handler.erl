@@ -50,7 +50,7 @@ request_id(Req, State) ->
 
 req_headers(Headers, Req, State) ->
   {Env, Req2} = cowboy_req:meta(x_env, Req, <<"production">>),
-  Headers2 = [{<<"x-env">>, Env}|Headers],
+  Headers2 = [{<<"x-env">>, Env}|lists:keydelete(<<"accept-encoding">>, 1, Headers)],
   case fast_key:get(<<"x-orig-proto">>, Headers2) of
     undefined ->
       Proto = fast_key:get(<<"x-forwarded-proto">>, Headers2),
