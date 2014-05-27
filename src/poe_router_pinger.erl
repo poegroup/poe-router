@@ -70,10 +70,15 @@ ping() ->
   Refs = [begin
     {ok, Pid} = gun:open(Host, Port, [{type, Proto}]),
     Ref = gun:get(Pid, Path, [{<<"user-agent">>, <<"poe-router">>}, {<<"accept">>, <<"*/*">>}]),
-    {Pid, Ref}
+    {Pid, Ref, Host}
   end || {Proto, Host, Port, Path} <- Confs],
   [begin
-    gun:await(Pid, Ref),
+    case gun:await(Pid, Ref) of
+      {response, _, Status, _} when Status < 500 ->
+        ok;
+      {response, _, Status, _Headers} when Status >= 500 ->
+        io:format("source=health-check count#health-check.~p=1 count#health-check.~s=1~n", [Status, Host])
+    end,
     gun:await_body(Pid, Ref)
-  end || {Pid, Ref} <- Refs],
+  end || {Pid, Ref, Host} <- Refs],
   ok.
