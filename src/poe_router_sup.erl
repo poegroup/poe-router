@@ -17,5 +17,6 @@ start_link() ->
 
 init([]) ->
   ok = poe_router_manager:init(),
-  Procs = [],
+  Procs = [{poe_router_pinger, {poe_router_pinger, start_link, []},
+          permanent, 5000, worker, [poe_router_pinger]}],
   {ok, {{one_for_one, 10, 10}, Procs}}.

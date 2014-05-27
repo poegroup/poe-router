@@ -2,6 +2,7 @@
 
 -export([init/0]).
 -export([apps/0]).
+-export([backend_confs/0]).
 -export([get/3]).
 -export([add/5]).
 -export([update/4]).
@@ -38,6 +39,10 @@ apps() ->
     Branches2 = maps:put(Branch, Hosts2, Branches),
     maps:put(App, Branches2, Acc)
   end, #{}, Apps).
+
+backend_confs() ->
+  Apps = ets:match(?APP_TAB, {{'$1', '$2'}, '_', '$3', '$4'}),
+  [Conf || [_, _, Conf, _] <- Apps].
 
 %% return a list of hosts for a given branch
 get(Name, Branch, User) ->
