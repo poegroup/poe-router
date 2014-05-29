@@ -46,7 +46,7 @@ request_id(Req, State) ->
     {Val, Req2} ->
       {Val, Req2}
   end,
-  {{<<"x-upstream-request-id">>, <<"x-request-id">>, ID}, Req3, State}.
+  {{<<"x-request-id">>, ID}, Req3, State}.
 
 req_headers(Headers, Req, State) ->
   {Env, Req2} = cowboy_req:meta(x_env, Req, <<"production">>),
