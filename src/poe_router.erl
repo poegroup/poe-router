@@ -48,9 +48,10 @@ start(Ref, Config) ->
   Middlewares = [
     poe_router_force_https
   ] ++ fast_key:get(middlewares, Config, []) ++ [
-    cowboy_router,
+    cowboy_router
+  ] ++ fast_key:get(pre_handlers, Config, []) ++ [
     cowboy_handler
-  ],
+  ] ++ fast_key:get(post_handlers, Config, []),
 
   start(Ref, 100, [
     {port, fast_key:get(port, Config, simple_env:get_integer("PORT", 8080))}

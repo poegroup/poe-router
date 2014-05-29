@@ -82,7 +82,12 @@ app_name(Req, State) ->
   end.
 
 branch(Name, Req, _State) ->
-  cowboy_req:cookie(<<"-", Name/binary>>, Req, <<"master">>).
+  case cowboy_req:meta(branch, Req) of
+    {undefined, _} ->
+      cowboy_req:cookie(<<"-", Name/binary>>, Req, <<"master">>);
+    Branch ->
+      Branch
+  end.
 
 user(Req, _State) ->
   {<<"id">>, Req}.
