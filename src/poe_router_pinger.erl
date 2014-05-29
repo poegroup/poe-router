@@ -77,8 +77,11 @@ ping() ->
       {response, _, Status, _} when Status < 500 ->
         ok;
       {response, _, Status, _Headers} when Status >= 500 ->
-        io:format("source=health-check count#health-check.~p=1 count#health-check.~s=1~n", [Status, Host])
+        io:format("source=health-check count#health-check.~p=1 count#health-check.~s=1~n", [Status, Host]);
+      {error, timeout} ->
+        io:format("source=health-check count#health-check.timeout=1 count#health-check.~s=1~n", [Host])
     end,
-    gun:await_body(Pid, Ref)
+    gun:await_body(Pid, Ref),
+    gun:shutdown(Pid)
   end || {Pid, Ref, Host} <- Refs],
   ok.
