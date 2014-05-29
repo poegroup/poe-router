@@ -33,8 +33,8 @@ stop() ->
 -spec init([]) -> {ok, #state{}}.
 init([]) ->
   Inteval = simple_env:get_integer("PING_INTERVAL", 10000),
-  TRef = erlang:send_after(Inteval, self(), ping),
-  {ok, #state{tref = TRef, interval = Inteval}}.
+  self() ! wait,
+  {ok, #state{interval = Inteval}}.
 
 -spec handle_call(any(), _, State) -> {reply, ignored, State} | {stop, normal, stopped, State} when State::#state{}.
 handle_call(stop, _From, State = #state{tref = TRef}) ->
@@ -48,8 +48,16 @@ handle_cast(_Msg, State) ->
   {noreply, State}.
 
 -spec handle_info(any(), State) -> {noreply, State} when State::#state{}.
-handle_info(ping, State = #state{interval = Interval}) ->
-  ping(),
+handle_info(ping, State) ->
+  try ping()
+  catch _:_ ->
+    ok
+  end,
+  self() ! wait,
+  {noreply, State};
+handle_info(wait, State = #state{interval = -1}) ->
+  {noreply, State};
+handle_info(wait, State = #state{interval = Interval}) ->
   TRef = erlang:send_after(Interval, self(), ping),
   {noreply, State#state{tref = TRef}};
 handle_info(_Info, State) ->
@@ -81,7 +89,7 @@ ping() ->
       {error, timeout} ->
         io:format("source=health-check count#health-check.timeout=1 count#health-check.~s=1~n", [Host])
     end,
-    gun:await_body(Pid, Ref),
+    gun:cancel(Pid, Ref),
     gun:shutdown(Pid)
   end || {Pid, Ref, Host} <- Refs],
   ok.
