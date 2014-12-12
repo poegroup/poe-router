@@ -27,14 +27,17 @@ start(Ref, Config) ->
       [{Path, poe_router_validation_handler, [{value, Val}]}] ++ Routes
   end,
 
+  PostRoutes = fast_key:get(post_routes, Config, [
+    {"/", fast_key:get(root, Config, poe_router_handler), Config}
+  ]),
+
   Dispatch = cowboy_router:compile([
     {'_', Routes2 ++ [
       {"/favicon.ico", poe_router_favicon, []},
       {Internal ++ "/api", poe_router_api_root, []},
       {Internal ++ "/[...]", poe_router_handler, [{app, <<"routerui">>}]},
-      {"/:app/[...]", poe_router_handler, []},
-      {"/", fast_key:get(root, Config, poe_router_handler), Config}
-    ]}
+      {"/:app/[...]", poe_router_handler, []}
+    ] ++ PostRoutes}
   ]),
 
   ERL_ENV = simple_env:get("ERL_ENV", "production"),
@@ -69,4 +72,3 @@ start(spdy, Listeners, Tcp, Proto) ->
   cowboy:start_spdy(spdy, Listeners, Tcp, Proto);
 start(Ref, Listeners, Tcp, Proto) ->
   cowboy:start_http(Ref, Listeners, Tcp, Proto).
-
