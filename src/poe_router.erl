@@ -27,17 +27,19 @@ start(Ref, Config) ->
       [{Path, poe_router_validation_handler, [{value, Val}]}] ++ Routes
   end,
 
+  DefaultRoutes = fast_key:get(default_routes, Config, [
+    {"/favicon.ico", poe_router_favicon, []},
+    {Internal ++ "/api", poe_router_api_root, []},
+    {Internal ++ "/[...]", poe_router_handler, [{app, <<"routerui">>}]},
+    {"/:app/[...]", poe_router_handler, []}
+  ]),
+
   PostRoutes = fast_key:get(post_routes, Config, [
     {"/", fast_key:get(root, Config, poe_router_handler), Config}
   ]),
 
   Dispatch = cowboy_router:compile([
-    {'_', Routes2 ++ [
-      {"/favicon.ico", poe_router_favicon, []},
-      {Internal ++ "/api", poe_router_api_root, []},
-      {Internal ++ "/[...]", poe_router_handler, [{app, <<"routerui">>}]},
-      {"/:app/[...]", poe_router_handler, []}
-    ] ++ PostRoutes}
+    {'_', Routes2 ++ DefaultRoutes ++ PostRoutes}
   ]),
 
   ERL_ENV = simple_env:get("ERL_ENV", "production"),
