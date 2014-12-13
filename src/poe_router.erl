@@ -56,9 +56,11 @@ start(Ref, Config) ->
     cowboy_handler
   ] ++ fast_key:get(post_handlers, Config, []),
 
+  Ranch = fast_key:get(ranch, Config, []),
+
   start(Ref, 100, [
     {port, fast_key:get(port, Config, simple_env:get_integer("PORT", 8080))}
-  ], [
+  ] ++ Ranch, [
     {env, Env},
     {middlewares, Middlewares},
     {compress, true},
